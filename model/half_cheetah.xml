@@ -31,7 +31,7 @@
         <body name="bshin" pos=".27 0 -.42">
           <!-- <joint axis="0 1 0" damping="4.5" name="bshin" pos="0 0 0" range="-.785 .785" stiffness="180" type="hinge"/> -->
           <joint axis="0 1 0" damping="4.5" name="bshin" pos="0 0 0" range="-.01 .01" stiffness="300" type="hinge"/>
-          <geom axisangle="0 1 0 -2.33" name="bshin" pos="-0.2 0 -0.17" rgba="0.9 0.6 0.6 1" size="0.046 .25" type="capsule"/>
+          <geom axisangle="0 1 0 -2.33" name="bshin" pos="-0.2 0 -0.19" rgba="0.9 0.6 0.6 1" size="0.046 .22" type="capsule"/>
         </body>
       </body>
       <body name="fthigh" pos=".5 0 0">
@@ -39,7 +39,7 @@
         <geom axisangle="0 1 0 .52" name="fthigh" pos="-.07 0 -.22" size="0.046 .233" type="capsule"/>
         <body name="fshin" pos="-.19 0 -.44">
           <joint axis="0 1 0" damping="3" name="fshin" pos="0 0 0" range="-1.2 .87" stiffness="200" type="hinge"/>
-          <geom axisangle="0 1 0 -.6" name="fshin" pos=".09 0 -.39" rgba="0.9 0.6 0.6 1" size="0.046 .21" type="capsule"/>
+          <geom axisangle="0 1 0 -.6" name="fshin" pos=".09 0 -.19" rgba="0.9 0.6 0.6 1" size="0.046 .21" type="capsule"/>
         </body>
       </body>
     </body>

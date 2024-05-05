@@ -95,10 +95,11 @@ import numpy as np
 
 # Load the model
 model = mujoco_py.load_model_from_path("./model/half_cheetah_real_two_limbs.xml")
+# model = mujoco_py.load_model_from_path("./model/half_cheetah.xml")
+
 
 # Create a simulation environment
 sim = mujoco_py.MjSim(model)
-
 
 viewer = mujoco_py.MjViewer(sim)
 # Get number of actuators
@@ -111,27 +112,34 @@ kp = 1.0
 for _ in range(1000):
     
     # Get current position of the torso
-    # torso_pos = sim.data.get_body_xpos('torso')
+    torso_pos = sim.data.get_body_xpos('torso')
     
-    # # Calculate desired velocity in x-direction (e.g., 1 m/s)
-    # desired_vel_x = 1.0
+    # Calculate desired velocity in x-direction (e.g., 1 m/s)
+    desired_vel_x = 1.0
     
-    # # Calculate error in x-direction
-    # error_x = desired_vel_x - torso_pos[0]
+    # Calculate error in x-direction
+    error_x = desired_vel_x - torso_pos[0]
     
-    # # Calculate control signal (torque) for each actuator
-    # # ctrl_signal = kp * error_x * np.ones(num_actuators)
-    # ctrl_signal = kp * error_x * np.random.uniform(low=-1, high=1, size=num_actuators)
-    # # Apply the control signal to the actuators
-    # sim.data.ctrl[:] = ctrl_signal
+    # Calculate control signal (torque) for each actuator
+    # ctrl_signal = kp * error_x * np.ones(num_actuators)
+    ctrl_signal = kp * error_x * np.random.uniform(low=-1, high=1, size=num_actuators)
+    # Apply the control signal to the actuators
+    sim.data.ctrl[:] = ctrl_signal
+    # sim.data.qvel[0] = 0.2
     
     # # Step the simulation
     print("current state:", sim.data.qpos)
-    print(num_actuators)
+    print("current velocity:", sim.data.qvel)
+    print("number of actuator", num_actuators)
+    #read from sensors
+    print("sensor data", sim.data.sensordata)
+    print("link size", sim.model.nbody)
+
     sim.step()
-    
-    
     
     viewer.render()
 
 viewer.close()  
+
+
+# bezier curve
