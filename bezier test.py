@@ -27,19 +27,31 @@ import matplotlib.pyplot as plt
 #                            [0.1326,0.2],
 #                            [0.05,0.2]])
 
-control_points = np.array([ [ 0.   ,   0.    ], 
-                            [-0.03  ,  0.    ],
-                            [-0.05  ,  -0.059 ],
-                            [-0.05  , -0.059 ],
-                            [-0.05  ,  -0.059 ],
-                            [ 0.0 ,  -0.059 ],
-                            [ 0.0 ,  -0.059 ],
-                            [ 0.0 ,  -0.09],
-                            [ 0.15, -0.09],
-                            [ 0.15, -0.09],
-                            [ 0.13,  0.    ],
-                            [ 0.05  ,  0.    ]])
+# control_points = np.array([ [ 0.   ,   0.    ], 
+#                             [-0.03  ,  0.    ],
+#                             [-0.05  ,  -0.059 ],
+#                             [-0.05  , -0.059 ],
+#                             [-0.05  ,  -0.059 ],
+#                             [ 0.0 ,  -0.059 ],
+#                             [ 0.0 ,  -0.059 ],
+#                             [ 0.0 ,  -0.09],
+#                             [ 0.15, -0.09],
+#                             [ 0.15, -0.09],
+#                             [ 0.13,  0.    ],
+#                             [ 0.05  ,  0.    ]])
         
+control_points = np.array([[-0.49 , -0.28 ],
+                            [-0.52 , -0.28 ],
+                            [-0.54 , -0.339],
+                            [-0.54 , -0.339],
+                            [-0.54 , -0.339],
+                            [-0.49 , -0.339],
+                            [-0.49 , -0.339],
+                            [-0.49 , -0.37 ],
+                            [-0.34 , -0.37 ],
+                            [-0.34 , -0.37 ],
+                            [-0.36 , -0.28 ],
+                            [-0.44 , -0.28 ]])
 
 dog_points = np.array([(0.49, 0.27999999999999997), (0.36, 0.45999999999999996), (0.5, 0.7), (0.0, 0.7), (-0.5, 0.7), (-0.33999999999999997, 0.44999999999999996), (-0.62, 0.30999999999999994)])
 
@@ -93,22 +105,22 @@ def stance(x, delta, y):
     l = x[0] - x[-1]
     if l == 0:
         for i in range(len(x)):
-            y_c = -1*delta*np.cos(np.pi*i/len(x))+y
+            y_c = -1*delta*np.sin(np.pi*i/len(x))+y
             res.append(y_c)
     else:
         for i in range(len(x)):
-            y_c = -1*delta*np.cos(np.pi*(x[i]-x[0])/l)+y
+            y_c = -1*delta*np.sin(np.pi*(x[i]-x[0])/l)+y
             res.append(y_c)
     return res
 
 # Generate trajectory points along the Bezier curve
 trajectory = bezier_curve(t, control_points)
 
-# sin_x = np.linspace(control_points[-1][0], control_points[0][0], 100)
-# sin_y = stance(sin_x, 0.01, -control_points[0][1])
+sin_x = np.linspace(control_points[-1][0], control_points[0][0], 100)
+sin_y = stance(sin_x, 0.01, control_points[0][1])
 
-# mv_x = np.concatenate((sin_x, trajectory[:, 0]))
-# mv_y = np.concatenate((sin_y, trajectory[:, 1]))
+mv_x = np.concatenate((sin_x, trajectory[:, 0]))
+mv_y = np.concatenate((sin_y, trajectory[:, 1]))
 
 # traj1 = bezier_curve(t, control_points1)
 
@@ -117,10 +129,10 @@ trajectory = bezier_curve(t, control_points)
 plt.plot(trajectory[:, 0], -trajectory[:, 1], 'bo-', label='Swing')
 plt.plot(control_points[:, 0], -control_points[:, 1], 'ro--', label='Control Points')
 # plt.plot(traj1[:, 0], -traj1[:, 1], 'g-', label='Swing1')
-# plt.plot(mv_x, -mv_y, 'b-', label='Swinging')
+plt.plot(mv_x, -mv_y, 'b-', label='Swinging')
 # plt.plot(sin_x, sin_y, 'r-', label='Stance')
 
-# plt.plot(dog_points[:, 0], dog_points[:, 1], 'go--', label='Dog Points')
+plt.plot(dog_points[:, 0], dog_points[:, 1], 'go--', label='Dog Points')
 plt.xlabel('X')
 plt.ylabel('Y')
 plt.legend()
