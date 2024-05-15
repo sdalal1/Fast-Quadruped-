@@ -405,11 +405,11 @@ for _ in range(0, 1000):
     if phase == 'right':
         sim.data.ctrl[0] = ctrl1[0]
         sim.data.ctrl[1] = ctrl2[0]
-        sim.data.ctrl[2] = 0
-        sim.data.ctrl[3] = 0
+        # sim.data.ctrl[2] = 0
+        # sim.data.ctrl[3] = 0
     elif phase == 'left':
-        sim.data.ctrl[0] = 0
-        sim.data.ctrl[1] = 0
+        # sim.data.ctrl[0] = 0
+        # sim.data.ctrl[1] = 0
         sim.data.ctrl[2] = ctrl3[0]
         sim.data.ctrl[3] = ctrl4[0]
         

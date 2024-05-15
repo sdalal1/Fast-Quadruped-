@@ -5,3 +5,5 @@ isaacgym*
 *LOG*
 *__pycache__*
 
+models/
+logs/
