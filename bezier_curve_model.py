@@ -405,11 +405,15 @@ for _ in range(0, 1000):
     if phase == 'right':
         sim.data.ctrl[0] = ctrl1[0]
         sim.data.ctrl[1] = ctrl2[0]
+        sim.data.ctrl[2] = ctrl3[0]
+        sim.data.ctrl[3] = ctrl4[0]
         # sim.data.ctrl[2] = 0
         # sim.data.ctrl[3] = 0
     elif phase == 'left':
         # sim.data.ctrl[0] = 0
         # sim.data.ctrl[1] = 0
+        sim.data.ctrl[0] = ctrl1[0]
+        sim.data.ctrl[1] = ctrl2[0]
         sim.data.ctrl[2] = ctrl3[0]
         sim.data.ctrl[3] = ctrl4[0]
         
@@ -430,7 +434,7 @@ for _ in range(0, 1000):
 
 # Plot the trajectory of the foot
 foot1_traj = np.array(foot1_traj)
-foot2_traj = np.array(foot2_traj)
+soot2_traj = np.array(foot2_traj)
 
 # print(foot1_traj)
 plt.scatter(x[20], y[20], label="Start")
