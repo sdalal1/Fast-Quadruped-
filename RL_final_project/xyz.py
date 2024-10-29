@@ -9,6 +9,7 @@ from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn as nn
+import torch
 
 class CustomCheetahEnv(gym.Env):
     metadata = {'render_modes': ['human']}
@@ -25,10 +26,12 @@ class CustomCheetahEnv(gym.Env):
         self.render_mode = render_mode
         
         # Define action and observation space
-        self.action_space = spaces.Box(low=-1, high=1, shape=(4,), dtype=np.float32)
-        # self.action_space = spaces.Box(low=-1, high=1, shape=(6,), dtype=np.float32)
+        # self.action_space = spaces.Box(low=-1, high=1, shape=(4,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-1, high=1, shape=(6,), dtype=np.float32)
         
-        # self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float32)        
+        # self.action_space = spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float32)
+        
+        self.previous_x_position = 0.0
         
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(self.sim.data.qpos.size + self.sim.data.qvel.size,), dtype=np.float32
@@ -77,28 +80,185 @@ class CustomCheetahEnv(gym.Env):
         return np.concatenate([self.sim.data.qpos.flat, self.sim.data.qvel.flat]).astype(np.float32)
     
     def _compute_reward(self):
-        # Define your reward function
-        b_shin = self.sim.data.get_body_xpos('bshin')
-        b_thigh = self.sim.data.get_body_xpos('bthigh')
-        f_shin = self.sim.data.get_body_xpos('fshin')
-        f_thigh = self.sim.data.get_body_xpos('fthigh')
+        """
+        Calculate the total reward for the cheetah model.
+        """
+
+        # 1. Speed Reward (encourages forward movement)
+        speed_reward = self.speed_reward()
+
+        # 2. Upright Reward (encourages the cheetah to stay upright)
+        upright_reward = self.upright_reward()
+
+        # 3. Joint Position Reward (encourages joints to stay within certain angles)
+        position_reward = self.joint_position_reward()
+
+        # 4. Joint Velocity Penalty (penalizes excessive joint velocity)
+        # velocity_penalty = self.joint_velocity_penalty()
+
+        # 5. Joint Torque Efficiency Penalty (penalizes excessive torque)
+        effort_penalty = self.joint_effort_penalty()
+
+        # Combine all the rewards and penalties
+        total_reward = (
+            speed_reward
+            + upright_reward
+            # + position_reward
+            # + velocity_penalty
+            # + effort_penalty
+        )
         
-        joint_penalty = 0.0
+        if self.sim.data.get_body_xpos('fthigh')[2] < 0.2:
+            total_reward -= 100.
+
+        # print(total_reward)
+        # print velocity 
+        # print(self.sim.data.qvel[0])
+        return total_reward
+
+# Individual reward/penalty functions
+
+    def speed_reward(self):
+        """
+        Encourages the cheetah to move forward along the x-axis (rootx).
+        """
+        # desired_speed = 10.0  # Target speed (can be tuned)
+        # forward_velocity = self.sim.data.get_joint_qvel('rootx')
+        forward_velocity = self.sim.data.qvel[0]
         
-        if b_shin[2] < 0.1:
-            joint_penalty += -1
+        # Reward is higher when the cheetah approaches desired speed
+        # reward = -abs(forward_velocity - desired_speed)
+        reward = forward_velocity
         
-        if b_thigh[2] < 0.05:
-            joint_penalty += -1
+        return reward
+
+    def upright_reward(self):
+        """
+        Encourages the cheetah to maintain an upright posture.
+        """
+        upright_position = 0.6  # Desired height (z-position) for the torso
+        # current_z_pos = self.sim.data.get_joint_qpos('rootz')
+        current_z_pos = self.sim.data.get_body_xpos('torso')[2]
+
+        # Reward the cheetah for staying upright (closer to desired height)
+        reward = -abs(current_z_pos - upright_position)
         
-        if f_shin[2] < 0.1:
-            joint_penalty += -1
+        return reward
+
+    def joint_position_reward(self):
+        """
+        Rewards for joints being within specific angle ranges.
+        """
+        # Define the target range for each joint
+        joint_ranges = {
+            'bthigh': [-0.52, 1.05],
+            'bshin': [-0.785, 0.785],
+            'bfoot': [-0.4, 0.785],
+            'fthigh': [-1.0, 0.7],
+            'fshin': [-1.2, 0.87],
+            'ffoot': [-0.5, 0.5]
+        }
         
-        if f_thigh[2] < 0.05:
-            joint_penalty += -1
+        reward = 0
+        for joint_name, (min_val, max_val) in joint_ranges.items():
+            joint_angle = self.sim.data.get_joint_qpos(joint_name)
+            if min_val <= joint_angle <= max_val:
+                # Reward for staying within the range
+                reward += 1.0
+            else:
+                # Penalty for going outside the range
+                reward -= 1.0
         
-        # return self.sim.data.qvel[0] #- self.get_motor_power()
-        return self.sim.data.qvel[0] + joint_penalty
+        return reward
+
+    def joint_velocity_penalty(self):
+        """
+        Penalizes excessive joint velocities to promote smoother motion.
+        """
+        max_velocity = {
+            'bthigh': 10.0,
+            'bshin': 10.0,
+            'bfoot': 10.0,
+            'fthigh': 10.0,
+            'fshin': 10.0,
+            'ffoot': 10.0
+        }
+        
+        penalty = 0
+        for joint_name, max_vel in max_velocity.items():
+            joint_velocity = self.sim.data.get_joint_qvel(joint_name)
+            if abs(joint_velocity) > max_vel:
+                # Penalty for exceeding velocity limit
+                penalty -= 0.5 * (abs(joint_velocity) - max_vel)
+        
+        return penalty
+
+    def joint_effort_penalty(self):
+        """
+        Penalizes high torques to encourage energy efficiency.
+        """
+        max_torque = {
+            'bthigh': 120,
+            'bshin': 90,
+            'bfoot': 60,
+            'fthigh': 120,
+            'fshin': 60,
+            'ffoot': 30
+        }
+        
+        penalty = 0
+        for joint_name, max_tor in max_torque.items():
+            joint_torque = self.sim.data.actuator_force[self.model.actuator_name2id(joint_name)]
+            if abs(joint_torque) > max_tor:
+                # Penalty for using excessive torque
+                penalty -= 0.1 * (abs(joint_torque) - max_tor)
+        
+        return penalty
+    # def _compute_reward(self):
+    #     # Reward for forward velocity
+    #     # forward_velocity_reward = 1.5 * self.sim.data.qvel[0]
+        
+    #     distance_traveled_reward = self.sim.data.get_body_xpos('torso')[0] + self.previous_x_position
+    #     self.previous_x_position = self.sim.data.get_body_xpos('torso')[0]
+        
+    #     # Penalty for excessive control effort
+    #     control_effort = np.sum(np.square(self.sim.data.ctrl))
+    #     control_penalty = -0.1 * control_effort
+        
+    #     # Optional: Reward for staying upright
+    #     upright_reward = 1.0 if self.sim.data.get_body_xpos('torso')[2] > 0.2 else -2.0
+
+    #     # Total reward
+    #     # reward = forward_velocity_reward + control_penalty + upright_reward
+    #     reward = distance_traveled_reward + control_penalty + upright_reward
+        
+    #     print(reward)
+    #     return reward
+    
+    # def _compute_reward(self):
+    #     # Define your reward function
+    #     b_shin = self.sim.data.get_body_xpos('bshin')
+    #     b_thigh = self.sim.data.get_body_xpos('bthigh')
+    #     f_shin = self.sim.data.get_body_xpos('fshin')
+    #     f_thigh = self.sim.data.get_body_xpos('fthigh')
+        
+    #     joint_penalty = 0.0
+        
+    #     if b_shin[2] < 0.1:
+    #         joint_penalty += -1
+        
+    #     if b_thigh[2] < 0.05:
+    #         joint_penalty += -1
+        
+    #     if f_shin[2] < 0.1:
+    #         joint_penalty += -1
+        
+    #     if f_thigh[2] < 0.05:
+    #         joint_penalty += -1
+        
+    #     # return self.sim.data.qvel[0] #- self.get_motor_power()
+    #     print(1.2 * (self.sim.data.qvel[0]))
+    #     return 1.2 * (self.sim.data.qvel[0]) + (joint_penalty)
     
     # def _compute_reward(self):
     # # Example rewards based on different criteria:
@@ -161,6 +321,12 @@ class CustomCheetahEnv(gym.Env):
         if self.sim.data.get_body_xpos('torso')[2] < 0.2:
             # print(self.sim.data.get_body_xpos('torso'))
             return True
+        if self.sim.data.get_body_xpos('torso')[0] > 20.0:
+            return True
+        if self.sim.data.get_body_xpos('torso')[0] < -1.0:
+            return True
+        # if self.sim.data.get_body_xpos('fthigh')[2] < 0.2:
+        #     return True
        
         #get shin and thigh position
         
@@ -203,9 +369,10 @@ def register_custom_env():
     register(
         id='CustomCheetah-v0',
         entry_point='__main__:CustomCheetahEnv',
-        kwargs={'xml_path': 'muj_models/half_cheetah_real_two_limbs.xml'}
+        # kwargs={'xml_path': 'muj_models/half_cheetah_real_two_limbs.xml'}
         # kwargs={'xml_path': 'muj_models/half_cheetah_with_joint.xml'} 
-        # kwargs={'xml_path': 'muj_models/half_cheetah_real.xml'}
+        kwargs={'xml_path': 'muj_models/half_cheetah_real.xml'}
+        # kwargs={'xml_path': 'muj_models/half_cheetah_real_1_less_joint.xml'}
         
     )
 
@@ -264,7 +431,7 @@ def train(env_id, algorithm, fname):
         model = PPO(
             policy='MlpPolicy',
             env=env,
-            verbose=1,
+            verbose=0,
             tensorboard_log=log_dir,
             batch_size=64,
             clip_range=0.1,
@@ -282,6 +449,12 @@ def train(env_id, algorithm, fname):
     else:
         print("Algorithm not found")
         return
+    
+    if torch.cuda.is_available():
+        print("Using CUDA")
+        model.policy.to('cuda')
+    else:
+        exit()
     
     TIMESTEPS = 100000
     iters = 0
@@ -317,6 +490,7 @@ def test(env_id, algorithm, path_to_model):
     time_data = []
     motor_energy_data = []
     motor_power_data = []
+    velocity_data = []
     total_motor_energy = 0
 
     x = 0
@@ -344,8 +518,9 @@ def test(env_id, algorithm, path_to_model):
         time_data.append(current_time - start_time)
         motor_energy_data.append(total_motor_energy)
         motor_power_data.append(motor_power)
+        velocity_data.append(env.unwrapped.sim.data.qvel[0])
 
-        if done or truncated:
+        if done:
             extra_steps -= 1
             if extra_steps < 0:
                 break
@@ -354,9 +529,11 @@ def test(env_id, algorithm, path_to_model):
     total_time = end_time - start_time
     print(f"Testing completed in {total_time} seconds")
     print(f"Total energy expended by motors: {total_motor_energy} units")
+    print(f"MAXIMUM VELOCITY: {max(velocity_data)}")
 
     # Plotting the energy data
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 20))
+    # fig, (ax1, ax2, ax3, ax4) = plt.subplots(3, 1, figsize=(10, 20))
+    fig , ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(20, 10))
     
     # Plot for total energy
     ax1.plot(time_data, energy_data, label='Total Energy')
@@ -381,6 +558,14 @@ def test(env_id, algorithm, path_to_model):
     ax3.set_title('Motor Power vs Time during Testing')
     ax3.legend()
     ax3.grid(True)
+    
+    # Plot for velocity
+    ax4.plot(time_data, velocity_data, label='Velocity', color='green')
+    ax4.set_xlabel('Time (seconds)')
+    ax4.set_ylabel('Velocity')
+    ax4.set_title('Velocity vs Time during Testing')
+    ax4.legend()
+    ax4.grid(True)
     
     total_time_text = f"Total Time: {total_time:.2f} seconds"
     total_motor_energy_text = f"Total Motor Energy: {total_motor_energy:.2f} units"

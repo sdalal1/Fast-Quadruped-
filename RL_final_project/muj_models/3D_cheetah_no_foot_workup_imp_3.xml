@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mujoco model="cheetah">
+    <compiler angle="radian" coordinate="local" inertiafromgeom="true" settotalmass="4.5"/>
+    
+    <default>
+        <!-- Base properties for all joints -->
+        <joint limited="true" frictionloss="0.2"/>
+        
+        <!-- Different classes for different joint types -->
+        <default class="front_hip">
+            <joint armature=".015" damping="6" stiffness="15"/>
+        </default>
+        <default class="front_knee">
+            <joint armature=".01" damping="4" stiffness="10"/>
+        </default>
+        <default class="back_hip">
+            <joint armature=".02" damping="7" stiffness="18"/>
+        </default>
+        <default class="back_knee">
+            <joint armature=".012" damping="4.5" stiffness="12"/>
+        </default>
+        
+        <geom conaffinity="0" condim="3" contype="1" friction="1.5 .1 .1" rgba="0.8 0.6 .4 1" solimp="0.0 0.8 0.01" solref="0.02 1"/>
+        <motor ctrllimited="true" ctrlrange="-20 20"/>
+    </default>
+
+    <size nstack="300000" nuser_geom="1"/>
+    <option gravity="0 0 -9.81" timestep="0.01"/>
+
+    <asset>
+        <texture builtin="gradient" height="100" rgb1="1 1 1" rgb2="0 0 0" type="skybox" width="100"/>
+        <texture builtin="flat" height="1278" mark="cross" markrgb="1 1 1" name="texgeom" random="0.01" rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" type="cube" width="127"/>
+        <texture builtin="checker" height="100" name="texplane" rgb1="0 0 0" rgb2="0.8 0.8 0.8" type="2d" width="100"/>
+        <material name="MatPlane" reflectance="0.5" shininess="1" specular="1" texrepeat="60 60" texture="texplane"/>
+        <material name="geom" texture="texgeom" texuniform="true"/>
+    </asset>
+
+    <worldbody>
+        <light cutoff="100" diffuse="1 1 1" dir="-0 0 -1.3" directional="true" exponent="1" pos="0 0 1.3" specular=".1 .1 .1"/>
+        <geom conaffinity="1" condim="3" material="MatPlane" name="floor" pos="0 0 0" rgba="0.8 0.9 0.8 1" size="40 40 40" type="plane"/>
+        
+        <body name="torso" pos="0 0 .3">
+            <camera name="track" mode="trackcom" pos="0 -3 0.3" xyaxes="1 0 0 0 0 1"/>
+            <joint armature="0" axis="1 0 0" damping="0" limited="false" name="rootx" pos="0 0 0" stiffness="0" type="slide"/>
+            <joint armature="0" axis="0 0 1" damping="0" limited="false" name="rootz" pos="0 0 0" stiffness="0" type="slide"/>
+            <joint armature="0" axis="0 1 0" damping="0" limited="false" name="rooty" pos="0 0 0" stiffness="0" type="hinge"/>
+            <geom fromto="-.15 0 0 .15 0 0" name="torso" size="0.02" type="capsule"/>
+            <geom axisangle="0 1 0 .87" name="head" pos="0.17 0 0.01" size="0.02 0.05" type="capsule"/>
+
+            <!-- Front Left Leg -->
+            <body name="lfthigh" pos=".15 0.04 0">
+                <joint axis="0 1 0" name="lfthigh" pos="0 0 0" range="-1 .7" type="hinge" class="front_hip"/>
+                <geom axisangle="0 1 0 .78" name="lfthigh" pos="-.053025 0 -.053025" size="0.02 .075" type="capsule"/>
+                <body name="lfshin" pos="-.10605 0 -.10605">
+                    <joint axis="0 1 0" name="lfshin" pos="0 0 0" range="-1.2 .87" type="hinge" class="front_knee"/>
+                    <geom axisangle="0 1 0 -.78" name="lfshin" pos=".053025 0 -.053025" rgba="0.9 0.6 0.6 1" size="0.02 .075" type="capsule"/>
+                </body>
+            </body>
+
+            <!-- Front Right Leg -->
+            <body name="rfthigh" pos=".15 -0.04 0">
+                <joint axis="0 1 0" name="rfthigh" pos="0 0 0" range="-1 .7" type="hinge" class="front_hip"/>
+                <geom axisangle="0 1 0 .78" name="rfthigh" pos="-.053025 0 -.053025" size="0.02 .075" type="capsule"/>
+                <body name="rfshin" pos="-.10605 0 -.10605">
+                    <joint axis="0 1 0" name="rfshin" pos="0 0 0" range="-1.2 .87" type="hinge" class="front_knee"/>
+                    <geom axisangle="0 1 0 -.78" name="rfshin" pos=".053025 0 -.053025" rgba="0.9 0.6 0.6 1" size="0.02 .075" type="capsule"/>
+                </body>
+            </body>
+
+            <!-- Back Left Leg -->
+            <body name="lbthigh" pos="-.15 0.04 0">
+                <joint axis="0 1 0" name="lbthigh" pos="0 0 0" range="-1 .7" type="hinge" class="back_hip"/>
+                <geom axisangle="0 1 0 .78" name="lbthigh" pos="-.053025 0 -.053025" size="0.02 .075" type="capsule"/>
+                <body name="lbshin" pos="-.10605 0 -.10605">
+                    <joint axis="0 1 0" name="lbshin" pos="0 0 0" range="-1.2 .87" type="hinge" class="back_knee"/>
+                    <geom axisangle="0 1 0 -.78" name="lbshin" pos=".053025 0 -.053025" rgba="0.9 0.6 0.6 1" size="0.02 .075" type="capsule"/>
+                </body>
+            </body>
+
+            <!-- Back Right Leg -->
+            <body name="rbthigh" pos="-.15 -0.04 0">
+                <joint axis="0 1 0" name="rbthigh" pos="0 0 0" range="-1 .7" type="hinge" class="back_hip"/>
+                <geom axisangle="0 1 0 .78" name="rbthigh" pos="-.053025 0 -.053025" size="0.02 .075" type="capsule"/>
+                <body name="rbshin" pos="-.10605 0 -.10605">
+                    <joint axis="0 1 0" name="rbshin" pos="0 0 0" range="-1.2 .87" type="hinge" class="back_knee"/>
+                    <geom axisangle="0 1 0 -.78" name="rbshin" pos=".053025 0 -.053025" rgba="0.9 0.6 0.6 1" size="0.02 .075" type="capsule"/>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+
+    <actuator>
+        <!-- Front legs (lighter actuation) -->
+        <motor gear="1.0" joint="lfthigh" name="lfthigh"/>
+        <motor gear="0.8" joint="lfshin" name="lfshin"/>
+        <motor gear="1.0" joint="rfthigh" name="rfthigh"/>
+        <motor gear="0.8" joint="rfshin" name="rfshin"/>
+        
+        <!-- Back legs (stronger actuation) -->
+        <motor gear="1.2" joint="lbthigh" name="lbthigh"/>
+        <motor gear="1.0" joint="lbshin" name="lbshin"/>
+        <motor gear="1.2" joint="rbthigh" name="rbthigh"/>
+        <motor gear="1.0" joint="rbshin" name="rbshin"/>
+    </actuator>
+</mujoco>

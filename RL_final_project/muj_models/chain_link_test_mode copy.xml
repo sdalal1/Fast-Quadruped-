@@ -1,0 +1,16 @@
+<mujoco>
+    <option gravity="0 0 -9.81" timestep="0.002" />
+    <worldbody>
+        <!-- Body 1 -->
+        <body name="body1" pos="-0.5 0 0">
+            <geom type="cylinder" size="0.1 0.5" pos="0 0 0.5" rgba="1 0 0 1" />
+        </body>
+
+        <!-- Body 2 -->
+        <body name="body2" pos="0.5 0 0">
+            <geom type="cylinder" size="0.1 0.5" pos="0 0 0.5" rgba="0 0 1 1" />
+            <!-- Connect to Body 1 with a joint -->
+            <joint name="hinge_joint" pos="0 0 0" axis="0 1 0" />
+        </body>
+    </worldbody>
+</mujoco>

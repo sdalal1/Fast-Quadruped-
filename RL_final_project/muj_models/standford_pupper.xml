@@ -1,0 +1,83 @@
+<mujoco model="stanford_pupper">
+    <compiler angle="degree"/>
+    <option gravity="0 0 -9.81" timestep="0.002"/>
+
+    <default>
+        <joint limited="true" damping="0.1" armature="0.01"/>
+        <geom conaffinity="0" condim="3" contype="1" friction="1.5 .1 .1" rgba="0.8 0.6 .4 1"/>
+    </default>
+
+    <asset>
+<texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="512"/>
+        <texture name="plane" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 .2 .3" width="512" height="512" mark="cross" markrgb=".8 .8 .8"/>
+        <material name="plane" reflectance="0.3" texture="plane" texrepeat="1 1" texuniform="true"/>
+    </asset>
+
+    <worldbody>
+        <light directional="true" diffuse=".8 .8 .8" specular=".2 .2 .2" pos="0 0 1" dir="0 0 -1"/>
+        <geom name="ground" type="plane" size="5 5 0.1" material="plane" conaffinity="1" contype="1"/>
+
+        <!-- Torso of the Pupper -->
+        <body name="torso" pos="0 0 0.25">
+            <joint type="free"/>
+            <geom type="box" size="0.1 0.05 0.02" mass="1"/>
+            <site name="torso" pos="0 0 0" size="0.01"/> <!-- Added site for sensors -->
+            
+            <!-- Front Left Leg -->
+            <body name="front_left_leg" pos="0.1 0.05 0">
+                <joint name="front_left_hip" type="hinge" axis="0 1 0" range="-45 45"/>
+                <geom type="capsule" fromto="0 0 0 0 0 -0.1" size="0.015" mass="0.1"/>
+                <body name="front_left_lower" pos="0 0 -0.1">
+                    <joint name="front_left_knee" type="hinge" axis="0 1 0" range="-90 90"/>
+                    <geom type="capsule" fromto="0 0 0 0 0 -0.1" size="0.01" mass="0.05"/>
+                </body>
+            </body>
+
+            <!-- Front Right Leg -->
+            <body name="front_right_leg" pos="0.1 -0.05 0">
+                <joint name="front_right_hip" type="hinge" axis="0 1 0" range="-45 45"/>
+                <geom type="capsule" fromto="0 0 0 0 0 -0.1" size="0.015" mass="0.1"/>
+                <body name="front_right_lower" pos="0 0 -0.1">
+                    <joint name="front_right_knee" type="hinge" axis="0 1 0" range="-90 90"/>
+                    <geom type="capsule" fromto="0 0 0 0 0 -0.1" size="0.01" mass="0.05"/>
+                </body>
+            </body>
+
+            <!-- Back Left Leg -->
+            <body name="back_left_leg" pos="-0.1 0.05 0">
+                <joint name="back_left_hip" type="hinge" axis="0 1 0" range="-45 45"/>
+                <geom type="capsule" fromto="0 0 0 0 0 -0.1" size="0.015" mass="0.1"/>
+                <body name="back_left_lower" pos="0 0 -0.1">
+                    <joint name="back_left_knee" type="hinge" axis="0 1 0" range="-90 90"/>
+                    <geom type="capsule" fromto="0 0 0 0 0 -0.1" size="0.01" mass="0.05"/>
+                </body>
+            </body>
+
+            <!-- Back Right Leg -->
+            <body name="back_right_leg" pos="-0.1 -0.05 0">
+                <joint name="back_right_hip" type="hinge" axis="0 1 0" range="-45 45"/>
+                <geom type="capsule" fromto="0 0 0 0 0 -0.1" size="0.015" mass="0.1"/>
+                <body name="back_right_lower" pos="0 0 -0.1">
+                    <joint name="back_right_knee" type="hinge" axis="0 1 0" range="-90 90"/>
+                    <geom type="capsule" fromto="0 0 0 0 0 -0.1" size="0.01" mass="0.05"/>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+
+    <actuator>
+        <motor joint="front_left_hip" ctrlrange="-1 1" gear="100"/>
+        <motor joint="front_left_knee" ctrlrange="-1 1" gear="100"/>
+        <motor joint="front_right_hip" ctrlrange="-1 1" gear="100"/>
+        <motor joint="front_right_knee" ctrlrange="-1 1" gear="100"/>
+        <motor joint="back_left_hip" ctrlrange="-1 1" gear="100"/>
+        <motor joint="back_left_knee" ctrlrange="-1 1" gear="100"/>
+        <motor joint="back_right_hip" ctrlrange="-1 1" gear="100"/>
+        <motor joint="back_right_knee" ctrlrange="-1 1" gear="100"/>
+    </actuator>
+
+    <sensor>
+        <accelerometer name="torso_accel" site="torso"/>
+        <gyro name="torso_gyro" site="torso"/>
+    </sensor>
+</mujoco>
