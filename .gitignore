@@ -7,3 +7,6 @@ isaacgym*
 
 models/
 logs/
+quadruped_stand_model/
+quadruped_stand_tensorboard/
+

@@ -1,10 +1,11 @@
+from mujoco_py import MjSim, MjViewer, load_model_from_path
 import gymnasium as gym
 from gymnasium.envs.registration import register
 from stable_baselines3 import SAC, TD3, A2C, PPO
+from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv, VecMonitor
 import os
 import argparse
 import time
-from mujoco_py import MjSim, MjViewer, load_model_from_path
 from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,14 +17,17 @@ class FullCheetahEnv(gym.Env):
     
     def __init__(self, xml_path, render_mode=None):
         super(FullCheetahEnv, self).__init__()
+        self.xml_path = xml_path
+        self.render_mode = render_mode
         
+        self._initialize_mujoco()
         # Load the MuJoCo model
-        self.model = load_model_from_path(xml_path)
-        self.sim = MjSim(self.model)
+        # self.model = load_model_from_path(xml_path)
+        # self.sim = MjSim(self.model)
         # self.viewer = None
-        self.viewer = MjViewer(self.sim)
+        # self.ptr = None
+        # self.viewer = MjViewer(self.sim)
         
-        # self.render_mode = render_mode
         
         # Define action and observation space
         # 12 actuators for 4 legs (3 joints per leg)
@@ -39,7 +43,29 @@ class FullCheetahEnv(gym.Env):
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(self.sim.data.qpos.size + self.sim.data.qvel.size,), dtype=np.float32
         )
-        
+    def _initialize_mujoco(self):
+        """Initialize MuJoCo components - separated for pickling support"""
+        self.model = load_model_from_path(self.xml_path)
+        self.sim = MjSim(self.model)
+        self.viewer = MjViewer(self.sim)
+        self.ptr = None
+
+    def __getstate__(self):
+        """Custom serialization method"""
+        state = self.__dict__.copy()
+        # Don't pickle MuJoCo objects
+        del state['model']
+        del state['sim']
+        del state['viewer']
+        del state['ptr']
+        return state
+
+    def __setstate__(self, state):
+        """Custom deserialization method"""
+        self.__dict__.update(state)
+        # Reinitialize MuJoCo objects
+        self._initialize_mujoco()
+    
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         
@@ -75,7 +101,7 @@ class FullCheetahEnv(gym.Env):
         if self.render_mode == 'human':
             if self.viewer is None:
                 self.viewer = MjViewer(self.sim)
-            self.viewer.render()
+            # self.viewer.render()
     
     def _get_obs(self):
         # Return the current observation
@@ -86,7 +112,7 @@ class FullCheetahEnv(gym.Env):
         speed_reward = 2 * self.speed_reward()
 
         # Upright Reward
-        # upright_reward = self.upright_reward()ls
+        upright_reward = self.upright_reward()
 
         # # Joint Position Reward
         # position_reward = self.joint_position_reward()
@@ -96,18 +122,39 @@ class FullCheetahEnv(gym.Env):
 
         total_reward = (
             speed_reward
-            # + upright_reward
+            + upright_reward
             # + position_reward
             # + effort_penalty
         )
         
         # Penalize if any leg is too low
-        if (self.sim.data.get_body_xpos('lfthigh')[2] < 0.1 or
-            self.sim.data.get_body_xpos('rfthigh')[2] < 0.1 or
-            self.sim.data.get_body_xpos('lbthigh')[2] < 0.1 or
-            self.sim.data.get_body_xpos('rbthigh')[2] < 0.1):
-            total_reward -= 100.
+        # if (self.sim.data.get_body_xpos('lfthigh')[2] < 0.1 or
+        #     self.sim.data.get_body_xpos('rfthigh')[2] < 0.1 or
+        #     self.sim.data.get_body_xpos('lbthigh')[2] < 0.1 or
+        #     self.sim.data.get_body_xpos('rbthigh')[2] < 0.1):
+        #     total_reward -= 0.2
+        if self.sim.data.get_body_xpos('lfthigh')[2] < 0.1:
+            total_reward -= self.sim.data.get_body_xpos('lfthigh')[2]
+        if self.sim.data.get_body_xpos('rfthigh')[2] < 0.1:
+            total_reward -= self.sim.data.get_body_xpos('rfthigh')[2]
+        if self.sim.data.get_body_xpos('lbthigh')[2] < 0.1:
+            total_reward -= self.sim.data.get_body_xpos('lbthigh')[2]
+        if self.sim.data.get_body_xpos('rbthigh')[2] < 0.1:
+            total_reward -= self.sim.data.get_body_xpos('rbthigh')[2]
+            
+        if abs(self.sim.data.get_body_xpos('torso')[1]) > 0.1:
+            total_reward -= abs(self.sim.data.get_body_xpos('torso')[0])
+        
+        if abs(self.sim.data.get_body_xquat('torso')[0]) > 0.1:
+            total_reward -= abs(self.sim.data.get_body_xquat('torso')[0])
+        # # penalize x motion
+        # if abs(self.sim.data.get_body_xpos('torso')[0]) > 0.4:
+        #     total_reward -= 0.2
+        
+        # if abs(self.sim.data.get_body_xquat('torso')[0]) > 0.1:
+        #     total_reward -= 0.2
 
+        # print(f"Speed Reward: {speed_reward}, Upright Reward: {upright_reward}, Total Reward: {total_reward}")
         return total_reward
 
     def speed_reward(self):
@@ -115,16 +162,16 @@ class FullCheetahEnv(gym.Env):
         return forward_velocity
 
     def upright_reward(self):
-        upright_position = 0.10
+        upright_position = 0.3
         current_z_pos = self.sim.data.get_body_xpos('torso')[2]
         return -abs(current_z_pos - upright_position)
 
     def joint_position_reward(self):
         joint_ranges = {
-            'lfthigh': [-1.0, 0.7], 'lfshin': [-1.2, 0.87], 'lffoot': [-0.5, 0.5],
-            'rfthigh': [-1.0, 0.7], 'rfshin': [-1.2, 0.87], 'rffoot': [-0.5, 0.5],
-            'lbthigh': [-0.52, 1.05], 'lbshin': [-0.785, 0.785], 'lbfoot': [-0.4, 0.785],
-            'rbthigh': [-0.52, 1.05], 'rbshin': [-0.785, 0.785], 'rbfoot': [-0.4, 0.785]
+            'lfthigh': [-1.0, 0.7], 'lfshin': [-1.2, 0.87],
+            'rfthigh': [-1.0, 0.7], 'rfshin': [-1.2, 0.87],
+            'lbthigh': [-0.52, 1.05], 'lbshin': [-0.785, 0.785],
+            'rbthigh': [-0.52, 1.05], 'rbshin': [-0.785, 0.785]
         }
         
         reward = 0
@@ -139,10 +186,10 @@ class FullCheetahEnv(gym.Env):
 
     def joint_effort_penalty(self):
         max_torque = {
-            'lfthigh': 120, 'lfshin': 60, 'lffoot': 30,
-            'rfthigh': 120, 'rfshin': 60, 'rffoot': 30,
-            'lbthigh': 120, 'lbshin': 90, 'lbfoot': 60,
-            'rbthigh': 120, 'rbshin': 90, 'rbfoot': 60
+            'lfthigh': 120, 'lfshin': 60,
+            'rfthigh': 120, 'rfshin': 60,
+            'lbthigh': 120, 'lbshin': 90,
+            'rbthigh': 120, 'rbshin': 90
         }
         
         penalty = 0
@@ -192,7 +239,7 @@ class FullCheetahEnv(gym.Env):
     def _is_truncated(self):
         if self.sim.data.time > 1000:
             return True
-        if self.sim.data.get_body_xpos('torso')[2] < 0.1:
+        if self.sim.data.get_body_xpos('torso')[2] < 0.05:
             return True
         if self.sim.data.get_body_xpos('torso')[0] > 20.0:
             return True
@@ -236,30 +283,47 @@ def register_custom_env():
         # kwargs={'xml_path': 'muj_models/3D_cheetah_no_foot_workup_imp_3.xml'}
         # kwargs={'xml_path': 'muj_models/3D_cheetah_no_foot_workup_imp_4.xml'}
         kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_8_1_3D_no_cons_1_link_back.xml'}        
+
         
         
         
-        # kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_8_1_3D_cons_3.xml'}
+        # kwargs={'xml_path': 'muj_models/3D_cheetah copy.xml'}
         # kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_2.xml'}
         # kwargs={'xml_path': 'muj_models/3D_cheetah_no_foot_2.xml'}
     )
 
-def train(env_id, algorithm, fname):
+def train(env_id, algorithm, fname, env_type, num_envs=100):
     print(f"Starting training with environment: {env_id} and algorithm: {algorithm}")
     
-    env = gym.make(env_id)
-    log_dir = "real_test_no_link_logs/"
-    model_dir = "real_test_no_link_model/"
+    # env = gym.make(env_id)
+    
+    if env_type == 'dummy':
+        env = DummyVecEnv([lambda: gym.make(env_id, render_mode='human') for _ in range(num_envs)])
+        env = VecMonitor(env)
+    elif env_type == 'subproc':
+        env = SubprocVecEnv([lambda: gym.make(env_id, render_mode='none') for _ in range(num_envs)], start_method="spawn")
+        env = VecMonitor(env)
+    else:
+        print("Environment type not found")
+        return
+    
+    log_dir = "real_test_logs/"
+    model_dir = "real_test_model/"
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(model_dir, exist_ok=True)
     
+    # policy_kwargs = dict(
+    #     log_std_init=-2,
+    #     ortho_init=False,
+    #     activation_fn=nn.ReLU,
+    #     net_arch=dict(pi=[256, 256], vf=[256, 256])
+    # )
+    # normalize_kwargs = {'norm_obs': True, 'norm_reward': False}
+    
     policy_kwargs = dict(
-        log_std_init=-2,
-        ortho_init=False,
-        activation_fn=nn.ReLU,
-        net_arch=dict(pi=[256, 256], vf=[256, 256])
+        net_arch=dict(pi=[256, 256], vf=[256, 256]),
+        activation_fn=nn.Tanh
     )
-    normalize_kwargs = {'norm_obs': True, 'norm_reward': False}
 
     if algorithm == 'PPO':
         model = PPO(
@@ -281,7 +345,7 @@ def train(env_id, algorithm, fname):
         target_kl=None,
         tensorboard_log=log_dir,
         policy_kwargs=policy_kwargs,
-        verbose=0,
+        verbose=1,
         normalize_advantage=True,
         device='cpu'
     )
@@ -334,12 +398,18 @@ def train(env_id, algorithm, fname):
         print("Algorithm not found")
         return
     
+    # if torch.cuda.is_available():
+    #     print("Using CUDA")
+    #     model.policy.to('cuda')
+    # else:
+    #     print("CUDA not available, using CPU")
+    
     TIMESTEPS = 1000000
     iters = 0
     while True:
         iters += 1
         print(f"Starting iteration {iters}")
-        model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, progress_bar=True)
+        model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False)
         model.save(f"{model_dir}/{algorithm}_{TIMESTEPS * iters}_{fname}")
         print(f"Completed iteration {iters}, model saved")
 
@@ -369,6 +439,7 @@ def test(env_id, algorithm, path_to_model):
     previous_time = start_time
     while env.unwrapped.sim.data.get_body_xpos('torso')[0] < 20.0:
         action, _ = model.predict(obs)
+        print(action)
         obs, _, done, truncated, _ = env.step(action)
         
         total_energy = env.unwrapped.get_total_energy()
@@ -440,6 +511,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train or test model.')
     parser.add_argument('gymenv', help='Gym environment id')
     parser.add_argument('sb3_algo', help='Stable Baselines3 algorithm')
+    parser.add_argument('env_type', help='Environment type (dummy or subproc)')
     parser.add_argument('-t', '--train', action='store_true')
     parser.add_argument('-s', '--test', metavar='path_to_model')
     parser.add_argument('-f', '--fname', help='Name of the file')
@@ -448,7 +520,7 @@ if __name__ == '__main__':
     register_custom_env()
 
     if args.train:
-        train(args.gymenv, args.sb3_algo, args.fname)
+        train(args.gymenv, args.sb3_algo, args.fname, args.env_type)
     
     if args.test:
         if os.path.isfile(args.test):

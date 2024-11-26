@@ -89,7 +89,7 @@ class FullCheetahEnv(gym.Env):
             self.sim.data.get_body_xpos('rfthigh')[2] < 0.2 or
             self.sim.data.get_body_xpos('lbthigh')[2] < 0.2 or
             self.sim.data.get_body_xpos('rbthigh')[2] < 0.2):
-            total_reward -= 100.
+            total_reward -= -10.
 
         # return total_reward
         speed_reward = self.speed_reward()
@@ -151,14 +151,14 @@ class FullCheetahEnv(gym.Env):
     def _is_truncated(self):
         if self.sim.data.time > 1000:
             return True
-        if any(self.sim.data.get_body_xpos(link)[2] < 0.1 for link in self.torso_links):
+        if any(self.sim.data.get_body_xpos(link)[2] < 0.08 for link in self.torso_links):
             return True
         if any(self.sim.data.get_body_xpos(link)[0] > 20.0 for link in self.torso_links):
             return True
         if any(self.sim.data.get_body_xpos(link)[0] < -1.0 for link in self.torso_links):
             return True
-        if self.sim.data.get_body_xpos('rbthigh')[2] < 0.1 or self.sim.data.get_body_xpos('lbthigh')[2] < 0.1 or self.sim.data.get_body_xpos('rfthigh')[2] < 0.1 or self.sim.data.get_body_xpos('lfthigh')[2] < 0.1:
-            return True
+        # if self.sim.data.get_body_xpos('rbthigh')[2] < 0.1 or self.sim.data.get_body_xpos('lbthigh')[2] < 0.1 or self.sim.data.get_body_xpos('rfthigh')[2] < 0.1 or self.sim.data.get_body_xpos('lfthigh')[2] < 0.1:
+        #     return True
         return False
 
     def close(self):
@@ -205,7 +205,11 @@ def register_custom_env():
         # kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_6.xml'}
         # kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_7.xml'}
         # kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_8.xml'}
-        kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_8_1.xml'}
+        # kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_8_1.xml'}
+        # kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_8_1_3D_no_cons.xml'}
+        kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_8_1_3D_no_cons_2.xml'}
+        
+        
         
 
     )
@@ -214,8 +218,8 @@ def train(env_id, algorithm, fname):
     print(f"Starting training with environment: {env_id} and algorithm: {algorithm}")
     
     env = gym.make(env_id)
-    log_dir = "mini_full_flex_dog_logs/"
-    model_dir = "mini_full_flex_dog_models/"
+    log_dir = "no_cons_logs/"
+    model_dir = "no_cons_models/"
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(model_dir, exist_ok=True)
     
