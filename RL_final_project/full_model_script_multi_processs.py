@@ -21,23 +21,7 @@ class FullCheetahEnv(gym.Env):
         self.render_mode = render_mode
         
         self._initialize_mujoco()
-        # Load the MuJoCo model
-        # self.model = load_model_from_path(xml_path)
-        # self.sim = MjSim(self.model)
-        # self.viewer = None
-        # self.ptr = None
-        # self.viewer = MjViewer(self.sim)
-        
-        
-        # Define action and observation space
-        # 12 actuators for 4 legs (3 joints per leg)
-        # self.action_space = spaces.Box(low=-1, high=1, shape=(12,), dtype=np.float32)
-        # self.action_space = spaces.Box(low=-1, high=1, shape=(8,), dtype=np.float32)
         self.action_space = spaces.Box(low=-20, high=20, shape=(8,), dtype=np.float32)
-        # self.action_space = spaces.Box(low=-10, high=10, shape=(8,), dtype=np.float32)
-        
-        
-        
         
         # Observation space includes joint positions and velocities
         self.observation_space = spaces.Box(
@@ -80,7 +64,6 @@ class FullCheetahEnv(gym.Env):
             self.viewer.render()    
         # Apply action
         self.sim.data.ctrl[:] = action
-        # print("ACTION: ", action)
         self.sim.step()
         
         # Get observation
@@ -101,7 +84,6 @@ class FullCheetahEnv(gym.Env):
         if self.render_mode == 'human':
             if self.viewer is None:
                 self.viewer = MjViewer(self.sim)
-            # self.viewer.render()
     
     def _get_obs(self):
         # Return the current observation
@@ -114,25 +96,12 @@ class FullCheetahEnv(gym.Env):
         # Upright Reward
         upright_reward = self.upright_reward()
 
-        # # Joint Position Reward
-        # position_reward = self.joint_position_reward()
-
-        # # Joint Effort Penalty
-        # effort_penalty = self.joint_effort_penalty()
 
         total_reward = (
             speed_reward
             + upright_reward
-            # + position_reward
-            # + effort_penalty
         )
-        
-        # Penalize if any leg is too low
-        # if (self.sim.data.get_body_xpos('lfthigh')[2] < 0.1 or
-        #     self.sim.data.get_body_xpos('rfthigh')[2] < 0.1 or
-        #     self.sim.data.get_body_xpos('lbthigh')[2] < 0.1 or
-        #     self.sim.data.get_body_xpos('rbthigh')[2] < 0.1):
-        #     total_reward -= 0.2
+
         if self.sim.data.get_body_xpos('lfthigh')[2] < 0.1:
             total_reward -= self.sim.data.get_body_xpos('lfthigh')[2]
         if self.sim.data.get_body_xpos('rfthigh')[2] < 0.1:
@@ -147,14 +116,7 @@ class FullCheetahEnv(gym.Env):
         
         if abs(self.sim.data.get_body_xquat('torso')[0]) > 0.1:
             total_reward -= abs(self.sim.data.get_body_xquat('torso')[0])
-        # # penalize x motion
-        # if abs(self.sim.data.get_body_xpos('torso')[0]) > 0.4:
-        #     total_reward -= 0.2
-        
-        # if abs(self.sim.data.get_body_xquat('torso')[0]) > 0.1:
-        #     total_reward -= 0.2
 
-        # print(f"Speed Reward: {speed_reward}, Upright Reward: {upright_reward}, Total Reward: {total_reward}")
         return total_reward
 
     def speed_reward(self):
@@ -200,39 +162,6 @@ class FullCheetahEnv(gym.Env):
         
         return penalty
     
-    # def joint_position_reward(self):
-    #     joint_ranges = {
-    #         'lfthigh': [-1.0, 0.7], 'lfshin': [-1.2, 0.87],
-    #         'rfthigh': [-1.0, 0.7], 'rfshin': [-1.2, 0.87],
-    #         'lbthigh': [-0.52, 1.05], 'lbshin': [-0.785, 0.785],
-    #         'rbthigh': [-0.52, 1.05], 'rbshin': [-0.785, 0.785],
-    #     }
-        
-    #     reward = 0
-    #     for joint_name, (min_val, max_val) in joint_ranges.items():
-    #         joint_angle = self.sim.data.get_joint_qpos(joint_name)
-    #         if min_val <= joint_angle <= max_val:
-    #             reward += 1.0
-    #         else:
-    #             reward -= 1.0
-        
-    #     return reward
-
-    # def joint_effort_penalty(self):
-    #     max_torque = {
-    #         'lfthigh': 120, 'lfshin': 60,
-    #         'rfthigh': 120, 'rfshin': 60,
-    #         'lbthigh': 120, 'lbshin': 90,
-    #         'rbthigh': 120, 'rbshin': 90,        }
-        
-    #     penalty = 0
-    #     for joint_name, max_tor in max_torque.items():
-    #         joint_torque = self.sim.data.actuator_force[self.model.actuator_name2id(joint_name)]
-    #         if abs(joint_torque) > max_tor:
-    #             penalty -= 0.1 * (abs(joint_torque) - max_tor)
-        
-    #     return penalty
-    
     def _is_done(self):
         return False
     
@@ -277,26 +206,13 @@ def register_custom_env():
     register(
         id='FullCheetah-v0',
         entry_point='__main__:FullCheetahEnv',
-        # kwargs={'xml_path': 'muj_models/3D_cheetah.xml'}
-        # kwargs={'xml_path': 'muj_models/3D_cheetah_no_foot_workup_imp.xml'}
-        # kwargs={'xml_path': 'muj_models/3D_cheetah_no_foot_workup_imp_2.xml'}
-        # kwargs={'xml_path': 'muj_models/3D_cheetah_no_foot_workup_imp_3.xml'}
-        # kwargs={'xml_path': 'muj_models/3D_cheetah_no_foot_workup_imp_4.xml'}
-        kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_8_1_3D_no_cons_1_link_back.xml'}        
-
-        
-        
-        
-        # kwargs={'xml_path': 'muj_models/3D_cheetah copy.xml'}
-        # kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_2.xml'}
-        # kwargs={'xml_path': 'muj_models/3D_cheetah_no_foot_2.xml'}
+        # kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_8_1_3D_no_cons_1_link_back.xml'}
+        kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_8_1_3D_no_cons_2_link (copy).xml'}
     )
 
 def train(env_id, algorithm, fname, env_type, num_envs=100):
     print(f"Starting training with environment: {env_id} and algorithm: {algorithm}")
-    
-    # env = gym.make(env_id)
-    
+
     if env_type == 'dummy':
         env = DummyVecEnv([lambda: gym.make(env_id, render_mode='human') for _ in range(num_envs)])
         env = VecMonitor(env)
@@ -311,14 +227,6 @@ def train(env_id, algorithm, fname, env_type, num_envs=100):
     model_dir = "real_test_model/"
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(model_dir, exist_ok=True)
-    
-    # policy_kwargs = dict(
-    #     log_std_init=-2,
-    #     ortho_init=False,
-    #     activation_fn=nn.ReLU,
-    #     net_arch=dict(pi=[256, 256], vf=[256, 256])
-    # )
-    # normalize_kwargs = {'norm_obs': True, 'norm_reward': False}
     
     policy_kwargs = dict(
         net_arch=dict(pi=[256, 256], vf=[256, 256]),
@@ -349,45 +257,6 @@ def train(env_id, algorithm, fname, env_type, num_envs=100):
         normalize_advantage=True,
         device='cpu'
     )
-        # model = PPO(
-        # policy='MlpPolicy',
-        # env=env,
-        # verbose=0,
-        # tensorboard_log=log_dir,
-        # batch_size=256,  # Increased for stability
-        # clip_range=0.2,  # Slightly more aggressive clipping
-        # ent_coef=0.01,   # Increased for better exploration
-        # gae_lambda=0.95, # Slightly increased for better advantage estimation
-        # gamma=0.99,      # Slightly increased for longer-term rewards
-        # learning_rate=3e-4,  # Start higher and use scheduler
-        # max_grad_norm=0.8,
-        # n_steps=2048,    # Increased for better sample efficiency
-        # n_epochs=10,     # Reduced to prevent overfitting
-        # vf_coef=0.5,     # Standard value
-        # policy_kwargs=policy_kwargs,
-        # normalize_advantage=True,
-        # device='cuda'
-        # )
-        # model = PPO(
-        #     policy='MlpPolicy',
-        #     env=env,
-        #     verbose=0,
-        #     tensorboard_log=log_dir,
-        #     # batch_size=64,
-        #     batch_size=128,
-        #     clip_range=0.1,
-        #     ent_coef=0.000401762,
-        #     gae_lambda=0.92,
-        #     gamma=0.98,
-        #     learning_rate=2.0633e-05,
-        #     max_grad_norm=0.8,
-        #     n_steps=512,
-        #     n_epochs=20,
-        #     vf_coef=0.58096,
-        #     policy_kwargs=policy_kwargs,
-        #     normalize_advantage=True,
-        #     device='cuda'
-        # )
     elif algorithm == 'SAC':
         model = SAC('MlpPolicy', env, verbose=0)
         print("Using SAC")
@@ -397,13 +266,7 @@ def train(env_id, algorithm, fname, env_type, num_envs=100):
     else:
         print("Algorithm not found")
         return
-    
-    # if torch.cuda.is_available():
-    #     print("Using CUDA")
-    #     model.policy.to('cuda')
-    # else:
-    #     print("CUDA not available, using CPU")
-    
+
     TIMESTEPS = 1000000
     iters = 0
     while True:
