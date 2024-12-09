@@ -5,28 +5,8 @@ from full_model_script_multi_processs import FullCheetahEnv
 import os
 import torch.nn as nn
 
-# # Register the custom environment
-# def register_custom_env():
-#     register(
-#         id='FullCheetah-v0',  # Unique environment ID
-#         entry_point='full_model_script_multi_processs:FullCheetahEnv',  # Full path to the custom environment class
-#         kwargs={'xml_path': 'muj_models/3D_cheetah_flexible_back_8_1_3D_no_cons_1_link_back.xml'},
-#         max_episode_steps=1000,
-#     )
-
-# Function to create each environment instance
-# def make_env():
-#     def _init():
-#         env = gym.make('FullCheetah-v0')
-#         return env
-#     return _init
-
-# def make_env():
-#     return make("FullCheetah-v0")
-
 def main():
     # Register the custom environment before instantiating it
-    # register_custom_env()
     
     # Use the registered environment ID
     env_id = 'FullCheetah-v0'

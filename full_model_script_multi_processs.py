@@ -10,7 +10,6 @@ from gymnasium import spaces
 import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn as nn
-import torch
 
 class FullCheetahEnv(gym.Env):
     metadata = {'render_modes': ['human']}
@@ -51,6 +50,7 @@ class FullCheetahEnv(gym.Env):
         self._initialize_mujoco()
     
     def reset(self, seed=None, options=None):
+        """ Reset the environment """
         super().reset(seed=seed)
         
         # Reset the simulation
@@ -60,6 +60,7 @@ class FullCheetahEnv(gym.Env):
         return obs, info
     
     def step(self, action):
+        """ Take a step in the environment """
         if self.viewer is not None:
             self.viewer.render()    
         # Apply action
@@ -81,15 +82,18 @@ class FullCheetahEnv(gym.Env):
         return obs, reward, terminated, truncated, info
     
     def render(self):
+        """ Render the environment """
         if self.render_mode == 'human':
             if self.viewer is None:
                 self.viewer = MjViewer(self.sim)
     
     def _get_obs(self):
+        """ Get the current observation """
         # Return the current observation
         return np.concatenate([self.sim.data.qpos.flat, self.sim.data.qvel.flat]).astype(np.float32)
     
     def _compute_reward(self):
+        """ Compute the reward """
         # Speed Reward
         speed_reward = 2 * self.speed_reward()
 
@@ -120,15 +124,18 @@ class FullCheetahEnv(gym.Env):
         return total_reward
 
     def speed_reward(self):
+        """ Reward for forward velocity """
         forward_velocity = self.sim.data.qvel[0]
         return forward_velocity
 
     def upright_reward(self):
+        """ Reward for keeping the torso upright """
         upright_position = 0.3
         current_z_pos = self.sim.data.get_body_xpos('torso')[2]
         return -abs(current_z_pos - upright_position)
 
     def joint_position_reward(self):
+        """ Reward for keeping the joints within the range """
         joint_ranges = {
             'lfthigh': [-1.0, 0.7], 'lfshin': [-1.2, 0.87],
             'rfthigh': [-1.0, 0.7], 'rfshin': [-1.2, 0.87],
@@ -147,6 +154,7 @@ class FullCheetahEnv(gym.Env):
         return reward
 
     def joint_effort_penalty(self):
+        """ Penalize high torques on the joints """
         max_torque = {
             'lfthigh': 120, 'lfshin': 60,
             'rfthigh': 120, 'rfshin': 60,
@@ -163,9 +171,11 @@ class FullCheetahEnv(gym.Env):
         return penalty
     
     def _is_done(self):
+        """ Define Conditions for termination """
         return False
     
     def _is_truncated(self):
+        """ Define Conditions for truncation """
         if self.sim.data.time > 1000:
             return True
         if self.sim.data.get_body_xpos('torso')[2] < 0.05:
@@ -177,10 +187,12 @@ class FullCheetahEnv(gym.Env):
         return False
 
     def close(self):
+        """ Close the environment """
         if self.viewer is not None:
             self.viewer = None
     
     def get_total_energy(self):
+        """ Get the total energy of the system """
         g = 9.81
         
         potential_energy = 0
@@ -199,10 +211,12 @@ class FullCheetahEnv(gym.Env):
         return total_energy
     
     def get_motor_power(self):
+        """ Get the power consumed by the motors """
         motor_power = np.sum(np.abs(self.sim.data.ctrl * self.sim.data.qvel[:len(self.sim.data.ctrl)]))
         return motor_power
 
 def register_custom_env():
+    """ Register the custom environment """
     register(
         id='FullCheetah-v0',
         entry_point='__main__:FullCheetahEnv',
@@ -211,6 +225,15 @@ def register_custom_env():
     )
 
 def train(env_id, algorithm, fname, env_type, num_envs=100):
+    """Train the model to walk in a straight line
+    
+    Args:
+        env_id (str): Gym environment id
+        algorithm (str): Stable Baselines3 algorithm (PPO, SAC, A2C)
+        fname (str): Name of the models saved
+        env_type (str): Environment type (dummy or subproc)
+        num_envs (int): Number of environments to run in parallel
+    """
     print(f"Starting training with environment: {env_id} and algorithm: {algorithm}")
 
     if env_type == 'dummy':
@@ -277,6 +300,13 @@ def train(env_id, algorithm, fname, env_type, num_envs=100):
         print(f"Completed iteration {iters}, model saved")
 
 def test(env_id, algorithm, path_to_model):
+    """Test the model and plot the required data
+
+    Args:
+        env_id (str): Gym environment id
+        algorithm (str): Stable Baselines3 algorithm
+        path_to_model (str): Path to the model
+    """
     print(f"Starting testing with environment: {env_id}, algorithm: {algorithm}, model path: {path_to_model}")
     
     env = gym.make(env_id, render_mode='human')
