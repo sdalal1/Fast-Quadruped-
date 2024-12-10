@@ -93,34 +93,29 @@ class FullCheetahEnv(gym.Env):
         return np.concatenate([self.sim.data.qpos.flat, self.sim.data.qvel.flat]).astype(np.float32)
     
     def _compute_reward(self):
-        """ Compute the reward """
-        # Speed Reward
-        speed_reward = 2 * self.speed_reward()
+        """
+        reward to heavily emphasize speed
+        """
+        # Significantly amplify speed reward
+        speed_reward = 5 * self.speed_reward()  # Increased multiplier
 
-        # Upright Reward
-        upright_reward = self.upright_reward()
+        # Upright Reward (less critical)
+        upright_reward = 0.5 * self.upright_reward()
 
-
+        # Combine rewards with speed as primary focus
         total_reward = (
             speed_reward
             + upright_reward
         )
-
-        if self.sim.data.get_body_xpos('lfthigh')[2] < 0.1:
-            total_reward -= self.sim.data.get_body_xpos('lfthigh')[2]
-        if self.sim.data.get_body_xpos('rfthigh')[2] < 0.1:
-            total_reward -= self.sim.data.get_body_xpos('rfthigh')[2]
-        if self.sim.data.get_body_xpos('lbthigh')[2] < 0.1:
-            total_reward -= self.sim.data.get_body_xpos('lbthigh')[2]
-        if self.sim.data.get_body_xpos('rbthigh')[2] < 0.1:
-            total_reward -= self.sim.data.get_body_xpos('rbthigh')[2]
-            
-        if abs(self.sim.data.get_body_xpos('torso')[1]) > 0.1:
-            total_reward -= abs(self.sim.data.get_body_xpos('torso')[0])
         
-        if abs(self.sim.data.get_body_xquat('torso')[0]) > 0.1:
-            total_reward -= abs(self.sim.data.get_body_xquat('torso')[0])
-
+        # Penalties for losing height or balance
+        if self.sim.data.get_body_xpos('torso')[2] < 0.2:
+            total_reward -= (0.2 - self.sim.data.get_body_xpos('torso')[2]) * 10
+        
+        # Penalize extreme lateral movement
+        if abs(self.sim.data.get_body_xpos('torso')[1]) > 0.5:
+            total_reward -= abs(self.sim.data.get_body_xpos('torso')[1]) * 5
+        
         return total_reward
 
     def speed_reward(self):
@@ -171,20 +166,40 @@ class FullCheetahEnv(gym.Env):
         return penalty
     
     def _is_done(self):
-        """ Define Conditions for termination """
+        """
+        Determine if the episode should terminate due to critical failure conditions.
+        
+        Prioritize keeping the robot running at speed with minimal failure modes.
+        """
+        # Torso height check (completely fallen over)
+        if self.sim.data.get_body_xpos('torso')[2] < 0.05:
+            return True
+        
+        # Severe tilting check (more lenient than previous version)
+        torso_quat = self.sim.data.get_body_xquat('torso')
+        if (abs(torso_quat[1]) > 0.8 or  # x-axis rotation
+            abs(torso_quat[2]) > 0.8):   # y-axis rotation
+            return True
+        
         return False
     
     def _is_truncated(self):
-        """ Define Conditions for truncation """
-        if self.sim.data.time > 1000:
+        """
+        Determine truncation for very long runs focused on speed.
+        
+        Allow extremely long episodes with minimal constraints.
+        """
+        # For 100,000 timesteps, adjust time limit accordingly
+        if self.sim.data.time > 1000:  # Adjust based on your timestep duration
             return True
-        if self.sim.data.get_body_xpos('torso')[2] < 0.05:
+        
+        # Prevent extreme lateral deviation
+        torso_pos = self.sim.data.get_body_xpos('torso')
+        if abs(torso_pos[1]) > 1.0:
             return True
-        if self.sim.data.get_body_xpos('torso')[0] > 20.0:
-            return True
-        if self.sim.data.get_body_xpos('torso')[0] < -1.0:
-            return True
+        
         return False
+
 
     def close(self):
         """ Close the environment """
