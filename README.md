@@ -1,6 +1,6 @@
 # Modular Quadruped Design and Gaits using Reinforcement Learning
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/1mVXlgvw5_c?si=rqbydLsi1Bfl_QkQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+[![YouTube](http://i.ytimg.com/vi/1mVXlgvw5_c/hqdefault.jpg)](https://www.youtube.com/watch?v=1mVXlgvw5_c)
 
 ### Overview
 This repository provides the necessary code to run simulations in the MuJoCo environment, complete with step-by-step instructions for downloading and configuring MuJoCo seamlessly. It includes custom environments designed for simulating:
