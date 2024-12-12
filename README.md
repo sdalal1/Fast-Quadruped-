@@ -1,4 +1,4 @@
-# Modular Quadruped Design and Gaits using Reinforcement Learning
+# Reinforcement Learning for Flexible back Quadruped
 
 [![YouTube](http://i.ytimg.com/vi/1mVXlgvw5_c/hqdefault.jpg)](https://www.youtube.com/watch?v=1mVXlgvw5_c)
 
@@ -11,6 +11,8 @@ These simulations are intended to bridge the gap between virtual models and real
 
 Additionally, the repository contains simulation code for the Stanford Pupper robot, adapted with a segmented-back design.
 
+For the detailed explanation please visit my [portfolio](https://sdalal1.github.io/projects/Quadruped-design-and-Improved-gaits/) post.
+
 
 ### Repository Structure
 The repository is organized into the following folders:
@@ -20,6 +22,8 @@ The repository is organized into the following folders:
 - RL_final_project - This folder documents various iterations of training and testing code for MuJoCo simulations. Each version corresponds to specific MuJoCo models, highlighting the progression and development of reinforcement learning strategies.
 
 - muj_models - This folder houses all the MuJoCo models created during the project. These models provide detailed insights into the sequential modifications made to optimize the quadruped’s structure and performance.
+
+- motor_code - Some code setup to test motors with RS485 CAN-hat and raspberry pi4B.
 
 This repository aims to support advancements in efficient quadruped locomotion by combining simulation and real-world implementations.
 

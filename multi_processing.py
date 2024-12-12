@@ -1,19 +1,20 @@
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
-# from gymnasium.envs.registration import register
 from full_model_script_multi_processs import FullCheetahEnv
 import os
 import torch.nn as nn
 
 def main():
-    # Register the custom environment before instantiating it
-    
     # Use the registered environment ID
     env_id = 'FullCheetah-v0'
     
-    env = FullCheetahEnv(xml_path='muj_models/3D_cheetah_flexible_back_8_1_3D_no_cons_1_link_back.xml')
+    # env = FullCheetahEnv(xml_path='muj_models/3D_cheetah_flexible_back_8_1_3D_no_cons_1_link_back.xml')
+    # env = FullCheetahEnv(xml_path='muj_models/3D_cheetah_flexible_back_8_1_3D_no_cons_2_link.xml')
+    env = FullCheetahEnv(xml_path='muj_models/3D_cheetah_flexible_back_8_1_3D_no_cons_2_link copy.xml')
+    
+    
     # Number of parallel environments
-    num_envs = 30  # Adjust this based on your CPU capacity
+    num_envs = 120  # Adjust this based on your CPU capacity
     
     # Create the vectorized environment using SubprocVecEnv for parallel training
     env = SubprocVecEnv([lambda: env for _ in range(num_envs)])
@@ -21,10 +22,11 @@ def main():
         net_arch=dict(pi=[256, 256], vf=[256, 256]),
         activation_fn=nn.Tanh
     )
-    log_dir = "subproc_test_logs/"
-    model_dir = "subproc_test_model/"
+    log_dir = "subproc_test_logs_seg_back_111_resume/"
+    model_dir = "subproc_test_model_seg_back_111_resume/"
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(model_dir, exist_ok=True)
+    
     # Initialize and train the model
     model = PPO(
         policy='MlpPolicy',
@@ -49,6 +51,7 @@ def main():
         normalize_advantage=True,
         device='cpu'
     )
+
     TIMESTEPS = 1000000
     iters = 0
     while True:
@@ -60,3 +63,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
