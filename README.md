@@ -1,6 +1,6 @@
 # Reinforcement Learning for Flexible back Quadruped
 
-[![YouTube](http://i.ytimg.com/vi/1mVXlgvw5_c/hqdefault.jpg)](https://www.youtube.com/watch?v=jfLxBojE-_s)
+[![YouTube](http://i.ytimg.com/vi/1mVXlgvw5_c/hqdefault.jpg)](https://www.youtube.com/watch?v=jSoEVCyRTfc)
 
 ### Overview
 This repository provides the necessary code to run simulations in the MuJoCo environment, complete with step-by-step instructions for downloading and configuring MuJoCo seamlessly. It includes custom environments designed for simulating:
